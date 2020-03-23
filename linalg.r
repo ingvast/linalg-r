@@ -7,6 +7,8 @@ REBOL [
 	}
 ]
 
+ff-matrix: func [ A ][ new-line/all A on ]
+
 swap-rows: func [ M i1 i2] [ swap at M i1 at M i2 ]
 vector-mult: func [ x1 x2 /local s ] [
     s: 0.0
@@ -20,6 +22,9 @@ vector-sum: func [ v /local sum ] [ sum: 0. repeat i length? v [ sum: sum + pick
 ;mult-vector-scalar: func [ v s ][ map-each t v [ t * s ]]
 mult-vector-scalar: func [ v s ][ v: copy v repeat i length? v [ poke v i s * pick v i ] v ]
 
+negate-vector: func [ v ][ v: copy v forall v [ v/1: negate v/1 ] v ]
+negate-matrix: func [ A ][ A: copy A forall A [ A/1: negate-vector A/1 ] A ]
+
 ;add-vector-scalar: func [ v s /local res][  map-each x v [ s + x ] ]
 add-vector-scalar: func [ v s ][ v: copy v repeat i length? v [ poke v i s + pick v i ] v ]
 
@@ -28,6 +33,21 @@ add-vector-vector: func [ v w ][ v: copy v repeat i length? v [ poke v i (pick w
 
 ;add-mult-vector-vector: func [ v a1 w a2 ][ map-each t v [ t *  a1 + ( a2 * first+ w )]]
 add-mult-vector-vector: func [ v a1 w a2 ][ v: copy v repeat i length? v [ poke v i (a1 * pick v i ) + ( a2 * pick w i ) ] v ]
+
+add-matrix-matrix: func [ A B /local result ][
+    result: copy []
+    foreach x A [
+	append/only result add-vector-vector x first+ B
+    ]
+]
+
+sub-matrix-matrix: func [ A B /local result ][
+    add-matrix-matrix A negate-matrix B
+]
+
+sub-matrix-matrix: func [ A B ][
+    add-matrix-matrix A negate-matrix B
+]
 
 mult-matrix-vector-ol: func [ M x /local n ret ] [
     n: length? M
@@ -56,6 +76,14 @@ mult-matrix-matrix: func [
     foreach x B [ append/only C mult-matrix-vector A x ]
     C: transpose-matrix C
 ]
+
+mult-matrix-scalar: func [ A k /local result ][
+    result: copy []
+    foreach x A  [
+	append/only result mult-vector-scalar x k
+    ]
+    result
+]
 	
 
 rand-vector: func [ n /local v ] [ v: make block! n  loop n [ append v ( random 1000. )  - 500. ] v ]
@@ -81,6 +109,7 @@ mult-add-vectors: func [
     r
 ]
 mult-row: func [ r k ] [ map-each x copy r [ x * k ] ]
+
 form-matrix: func [ 'M
     /local
     r ret
@@ -102,6 +131,20 @@ get-col: func [
     ret
 ]
 
+get-cols: func [
+    M { The matrix}
+    from {The first column}
+    to {The last column}
+    /local
+	ret
+	n
+    ] [
+    n: length? M
+    ret: make block! n
+    foreach x M [ append/only ret copy/part at x from to - from + 1 ]
+    ret
+]
+
 transpose-matrix: func [A /local ret m ] [
     ret: make block! n: length? A/1
     m: length? A
@@ -112,6 +155,9 @@ transpose-matrix: func [A /local ret m ] [
     new-line/all ret on
 ]
 
+inverse-matrix: func [ A /local Ainv ][
+    linear-eq-solve A eye length? A
+]
 determinant-definition: func [
     {Calculates the determinant using the definitioin of such, very time
     consuming and memory hungry}
@@ -267,7 +313,11 @@ linear-eq-solve: func [
 	    ; print [ "Reduced row" j ] print form-matrix A
 	]
     ]
-    get-col A n + 1 
+    either block? y/1 [
+	get-col A n + 1 
+    ][
+	get-cols A n + 1  length? A/1
+    ]
 ]
 
 
@@ -277,7 +327,7 @@ linear-eq-solve: func [
 if all [value? 'debug-linalg debug-linalg ] [
     A: [    [ 1 2 ]
 	    [ 2 3 ] 
-	]
+       ]
     x-solved: [ 2 3 ]
     y: mult-matrix-vector A x-solved
 
