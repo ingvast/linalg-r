@@ -218,14 +218,11 @@ diag: func [ A
 
 forward-decomposition: func [
     {Does forward decomposition, adds an eye matrix in case A is nxn}
+
     A [ block! ] 
     /mult
-    /local
-	x
-	n
-	row
-	B 
-	m
+
+    /local x n row B m
 ][ 
     A: copy/deep A
     n: length? A
@@ -262,43 +259,16 @@ linear-eq-solve: func [
      A = [ [ A11 A12 ... A1n ] [ A21 A22 ... A2n ] ... [1An An2 ... Ann] ]
      x = [ x/1 x/2 ... x/n ]
     }
+
     A [ block! ] { Block of size n x n }
     y [ block! ] { Block of size n }
-    /local
-	x
-	n
-	row
+
+    /local x n row
 ][ 
     A: copy/deep A
     foreach row A [ append row first+ y ]
     A: forward-decomposition A
     n: length? A
-    comment [
-	; print [ "Y-added" ] print form-matrix A
-	x: make block! n
-	
-
-	; Forward substitutioin
-	repeat i n [
-	    ; Find the row with largest pivot element and move the row to the first row
-	    for j i + 1 n 1 [
-		if ( abs A/:i/:j ) > abs A/:i/:i [ swap-rows A i j ]
-	    ]
-	    ; Now we should have the row with the best diagonal on row i
-	    ; 
-	    d-element: negate A/:i/:i
-
-	    for j i + 1 n 1 [
-		A/:j:   mult-add-vectors	A/:j	    -1
-				    A/:i	    A/:j/:i / d-element
-
-		A/:j/:i: 0 ; In case there are numerical rests
-
-		; print [ "Reduced row" j ]
-		; print form-matrix A
-	    ]
-	]
-    ]
     ; Backward substitution
     ; print {Backward substitution}
     for i n 1 -1 [
